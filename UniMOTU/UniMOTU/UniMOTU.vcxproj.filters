@@ -38,5 +38,8 @@
     <ClCompile Include="UniMOTU.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MOTUPlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
