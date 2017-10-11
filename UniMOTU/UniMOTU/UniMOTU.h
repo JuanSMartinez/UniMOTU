@@ -1,7 +1,13 @@
 #pragma once
 
-//Initialize PortAudio and the audio device and verifies the connection to the 24 channel motu output
-extern "C" __declspec(dllexport) int Initialize();
+//Plays a matrix that corresponds to the phoneme code
+extern "C" __declspec(dllexport) int play(int phonemeCode);
 
-//Plays a matrix sent from the game
-extern "C" __declspec(dllexport) int Play(float matrix[200][24], float duration);
+//Play a simple sine wave to test the connection
+extern "C" __declspec(dllexport) int testPlay();
+
+//Returns log code
+extern "C" __declspec(dllexport) int getLogcode();
+
+
+
