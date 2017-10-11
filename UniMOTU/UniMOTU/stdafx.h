@@ -6,9 +6,10 @@
 #pragma once
 
 #include "targetver.h"
-
 #include <stdio.h>
 #include <tchar.h>
+#include "MOTUPlayer.h"
+#include "UniMOTU.h"
 
 
 

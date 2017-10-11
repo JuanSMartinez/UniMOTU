@@ -2,10 +2,14 @@
 //
 
 #include "stdafx.h"
+MOTUPlayer player;
 
+__declspec(dllexport) int Initialize() {
+	player = MOTUPlayer();
+	return player.Initialize();	
+}
 
-int main()
-{
-    return 0;
+__declspec(dllexport) int Play(float matrix[200][24], float duration) {
+	return player.Play(matrix, 200, 24, duration);
 }
 
