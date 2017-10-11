@@ -169,8 +169,13 @@ __declspec(dllexport) int testPlay() {
 }
 
 /*Return the log code*/
-extern "C" __declspec(dllexport) int getLogcode() {
+extern "C" __declspec(dllexport) int getLogCode() {
 	return logCode;
+}
+
+/*Return the playing flag*/
+__declspec(dllexport) int isPlaying() {
+	return playing;
 }
 
 

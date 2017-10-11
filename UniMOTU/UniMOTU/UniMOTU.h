@@ -7,7 +7,10 @@ extern "C" __declspec(dllexport) int play(int phonemeCode);
 extern "C" __declspec(dllexport) int testPlay();
 
 //Returns log code
-extern "C" __declspec(dllexport) int getLogcode();
+extern "C" __declspec(dllexport) int getLogCode();
+
+//Returns playing flag
+extern "C" __declspec(dllexport) int isPlaying();
 
 
 
