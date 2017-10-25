@@ -27,6 +27,18 @@ PaStream *stream;
 int logCode =0;
 int playing = 0;
 
+/*Search for the 24 channel motu output*/
+PaDeviceIndex findMOTU() {
+	const PaDeviceInfo* info;
+	int numDevices = Pa_GetDeviceCount();
+	for (int i = 0; i < numDevices; i++) {
+		info = Pa_GetDeviceInfo(i);
+		if (info->maxOutputChannels == 24 && strstr(info->name, "MOTU"))
+			return i;
+	}
+	return paNoDevice;
+}
+
 /*PortAudio callback method for a simple sine test*/
 static int simpleSineTestCallback(const void *inputBuffer, void *outputBuffer,
 	unsigned long framesPerBuffer,
@@ -63,6 +75,7 @@ static void StreamFinished(void* userData)
 
 void AsyncSimpleSinePlay(void*) {
 	playing = 1;
+	logCode = 0;
 	//Error
 	PaError err;
 
@@ -85,16 +98,18 @@ void AsyncSimpleSinePlay(void*) {
 	if (err != paNoError) {
 		logCode = 1;
 		Pa_Terminate();
+		return;
 	}
 
-	//Verify that MOTU is the default output device
-	info = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
-	outputParameters.device = Pa_GetDefaultOutputDevice();
-	if (outputParameters.device == paNoDevice || (info->maxOutputChannels != 24 && strstr(info->name, "MOTU"))) {
+	//Find MOTU
+	PaDeviceIndex device = findMOTU();
+	if (device == paNoDevice) {
 		logCode = 2;
 		Pa_Terminate();
+		return;
 	}
-
+	info = Pa_GetDeviceInfo(device);
+	outputParameters.device = device;
 	outputParameters.channelCount = 24;       /* stereo output */
 	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
 	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
