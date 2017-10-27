@@ -10,9 +10,13 @@
 #include <tchar.h>
 #include "UniMOTU.h"
 #include "portaudio.h"
+#include <iostream>
+#include <fstream>
 #include <math.h>
 #include <process.h>
-#include <string.h>
+#include <string>
+#include <vector>
+#include <Windows.h>
 
 
 

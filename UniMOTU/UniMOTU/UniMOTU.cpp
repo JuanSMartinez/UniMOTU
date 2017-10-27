@@ -5,14 +5,15 @@
 
 #define SAMPLE_RATE   (44100)
 #define FRAMES_PER_BUFFER (64)
-#define TABLE_SIZE (200)
+#define TABLE_SIZE (21168)
+#define SMALL_TABLE_SIZE (200)
 
 #ifndef M_PI
 #define M_PI (3.14159265)
 #endif
 
 typedef struct {
-	float sineData[TABLE_SIZE];
+	float sineData[SMALL_TABLE_SIZE];
 	int duration;
 }
 simpleSineData;
@@ -26,6 +27,7 @@ phonemeData;
 PaStream *stream;
 int logCode =0;
 int playing = 0;
+int phoneme_index_table = 0;
 
 /*Search for the 24 channel motu output*/
 PaDeviceIndex findMOTU() {
@@ -37,6 +39,45 @@ PaDeviceIndex findMOTU() {
 			return i;
 	}
 	return paNoDevice;
+}
+
+/*Read a phoneme CSV file
+TODO: Testing just for the phoneme OY
+*/
+static void readOYCSVPhoneme(phonemeData* phoneme) {
+
+	std::vector<std::string> vector;
+	std::string line;
+	std::ifstream fileStream;
+	std::string path;
+	fileStream.open("C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv");
+	while (fileStream.good()) {
+		std::getline(fileStream, line);
+		vector.push_back(line);
+	}
+	fileStream.close();
+
+	int j;
+	size_t rows = vector.size();
+
+	for (int i = 0; i < rows; i++) {
+		std::string row = vector[i];
+		size_t pos = row.find(",");
+		std::string value;
+		j = 0;
+		while (pos != std::string::npos) {
+			value = row.substr(0, pos);
+			row.erase(0, pos + 1);
+			phoneme->data[i][j] = atof(value.c_str());
+			j++;
+			pos = row.find(",");
+
+		}
+		phoneme->data[i][j] = atof(row.c_str());
+		j = 0;
+	}
+	phoneme->duration = 480;
+
 }
 
 /*PortAudio callback method for a simple sine test*/
@@ -60,7 +101,33 @@ static int simpleSineTestCallback(const void *inputBuffer, void *outputBuffer,
 		for(k = 0; k < 24; k++)
 			*out++ = myData->sineData[j];
 		j += 1;
-		if (j >= TABLE_SIZE) j -= TABLE_SIZE;
+		if (j >= SMALL_TABLE_SIZE) j -= SMALL_TABLE_SIZE;
+	}
+	return paContinue;
+}
+
+/*PortAudio callback method for a phoneme play*/
+static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
+	unsigned long framesPerBuffer,
+	const PaStreamCallbackTimeInfo* timeInfo,
+	PaStreamCallbackFlags statusFlags,
+	void *userData) {
+
+	phonemeData *myData = (phonemeData*)userData;
+	float *out = (float*)outputBuffer;
+	unsigned long i;
+
+	(void)timeInfo; /* Prevent unused variable warnings. */
+	(void)statusFlags;
+	(void)inputBuffer;
+
+	int k;
+	for (i = 0; i<framesPerBuffer; i++)
+	{
+		for (k = 0; k < 24; k++)
+			*out++ = myData->data[phoneme_index_table][k];
+		phoneme_index_table += 1;
+		if (phoneme_index_table >= TABLE_SIZE) phoneme_index_table -= TABLE_SIZE;
 	}
 	return paContinue;
 }
@@ -87,9 +154,9 @@ void AsyncSimpleSinePlay(void*) {
 	//Create sine data
 	int i;
 	simpleSineData sineData;
-	for (i = 0; i<TABLE_SIZE; i++)
+	for (i = 0; i<SMALL_TABLE_SIZE; i++)
 	{
-		sineData.sineData[i] = (float)0.5*sin(((double)i / (double)TABLE_SIZE) * M_PI * 2.);
+		sineData.sineData[i] = (float)0.5*sin(((double)i / (double)SMALL_TABLE_SIZE) * M_PI * 2.);
 	}
 	sineData.duration = 2;
 
@@ -168,9 +235,106 @@ void AsyncSimpleSinePlay(void*) {
 	_endthread();
 }
 
+void AsyncPlayPhoneme(void*) {
+	playing = 1;
+	logCode = 0;
+	phoneme_index_table = 0;
+
+	phonemeData* data = (phonemeData*)malloc(sizeof(phonemeData));
+	readOYCSVPhoneme(data);
+
+	//Error
+	PaError err;
+
+	PaStreamParameters outputParameters;
+
+	//Device information
+	const PaDeviceInfo* info;
+
+
+	//Initialize
+	err = Pa_Initialize();
+	if (err != paNoError) {
+		logCode = 1;
+		Pa_Terminate();
+		return;
+	}
+
+	//Find MOTU
+	PaDeviceIndex device = findMOTU();
+	if (device == paNoDevice) {
+		logCode = 2;
+		Pa_Terminate();
+		return;
+	}
+	info = Pa_GetDeviceInfo(device);
+	outputParameters.device = device;
+	outputParameters.channelCount = 24;       /* stereo output */
+	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
+	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
+	outputParameters.hostApiSpecificStreamInfo = NULL;
+
+
+	err = Pa_OpenStream(
+		&stream,
+		NULL, /* no input */
+		&outputParameters,
+		SAMPLE_RATE,
+		FRAMES_PER_BUFFER,
+		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+		phonemePlayCallback,
+		data);
+
+	if (err != paNoError) {
+		logCode = 3;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_SetStreamFinishedCallback(stream, &StreamFinished);
+	if (err != paNoError) {
+		logCode = 4;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_StartStream(stream);
+	if (err != paNoError) {
+		logCode = 5;
+		Pa_Terminate();
+		return;
+	}
+
+	Pa_Sleep(data->duration);
+
+	err = Pa_StopStream(stream);
+	if (err != paNoError) {
+		logCode = 6;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_CloseStream(stream);
+	if (err != paNoError) {
+		logCode = 7;
+		Pa_Terminate();
+		return;
+	}
+
+	Pa_Terminate();
+	logCode = 0;
+	playing = 0;
+	_endthread();
+}
+
 /*Plays a phoneme*/
 __declspec(dllexport) int play(int phonemeCode) {
-	return 0;
+	
+	if (playing == 0) {
+		_beginthread(AsyncPlayPhoneme, 0, NULL);
+		return 0;
+	}
+	else return -1;
 }
 
 /*Play a simple sine wave*/
@@ -192,6 +356,7 @@ extern "C" __declspec(dllexport) int getLogCode() {
 __declspec(dllexport) int isPlaying() {
 	return playing;
 }
+
 
 
 
