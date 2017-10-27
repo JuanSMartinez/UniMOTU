@@ -12,6 +12,8 @@
 #define M_PI (3.14159265)
 #endif
 
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+
 typedef struct {
 	float sineData[SMALL_TABLE_SIZE];
 	int duration;
@@ -41,6 +43,19 @@ PaDeviceIndex findMOTU() {
 	return paNoDevice;
 }
 
+std::string escapeStr(std::string str) {
+	std::string result = "";
+	int pos = 0;
+	for (int i = 0; i < str.length(); ++i) {
+		if (str[i] == '\\') {
+			std::string sub = str.substr(pos, i);
+			result = result + sub + '\\';
+			pos = i+1;
+		}
+	}
+	return str;
+}
+
 /*Read a phoneme CSV file
 TODO: Testing just for the phoneme OY
 */
@@ -49,8 +64,25 @@ static void readOYCSVPhoneme(phonemeData* phoneme) {
 	std::vector<std::string> vector;
 	std::string line;
 	std::ifstream fileStream;
-	std::string path;
-	fileStream.open("C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv");
+	std::vector<wchar_t> pathBuf;
+	DWORD copied = 0;
+	do {
+		pathBuf.resize(pathBuf.size() + MAX_PATH);
+		copied = GetModuleFileName(0, &pathBuf.at(0), pathBuf.size());
+	} while (copied >= pathBuf.size());
+
+	pathBuf.resize(copied);
+	std::string path(pathBuf.begin(), pathBuf.end());
+	std::string::size_type pos = std::string(path).find_last_of("\\/");
+	std::string dir = (std::string(path).substr(0, pos));
+
+	WCHAR   DllPath[MAX_PATH] = { 0 };
+	GetModuleFileNameW((HINSTANCE)&__ImageBase, DllPath, _countof(DllPath));
+	std::wstring out = std::wstring(DllPath);
+	//fileStream.open(dir + "\\OY.csv");
+	fileStream.open( out + L"\\OY.csv");
+	//fileStream.open("C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv");
+	
 	while (fileStream.good()) {
 		std::getline(fileStream, line);
 		vector.push_back(line);
