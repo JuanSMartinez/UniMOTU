@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include "Phoneme.h"
 
 
 

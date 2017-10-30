@@ -30,6 +30,8 @@ PaStream *stream;
 int logCode =0;
 int playing = 0;
 int phoneme_index_table = 0;
+int dynamic_table_size = 0;
+bool data_streamed = false;
 
 /*Search for the 24 channel motu output*/
 PaDeviceIndex findMOTU() {
@@ -271,9 +273,14 @@ void AsyncPlayPhoneme(void*) {
 	playing = 1;
 	logCode = 0;
 	phoneme_index_table = 0;
+	dynamic_table_size = 0;
+	data_streamed = false;
 
-	phonemeData* data = (phonemeData*)malloc(sizeof(phonemeData));
-	readOYCSVPhoneme(data);
+	//phonemeData* data = (phonemeData*)malloc(sizeof(phonemeData));
+	//readOYCSVPhoneme(data);
+
+	Phoneme phoneme(38);
+	dynamic_table_size = phoneme.getNumberOfRows();
 
 	//Error
 	PaError err;
