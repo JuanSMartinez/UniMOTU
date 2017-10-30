@@ -33,7 +33,8 @@ std::string Phoneme::getPathToDataFile(){
 	std::string path(pathBuf.begin(), pathBuf.end());
 	std::string::size_type pos = std::string(path).find_last_of("\\/");
 	basePath = std::string(path).substr(0, pos) + "\\";
-    return basePath + phonemeList[phonemeCode] + ".csv";
+    //return basePath + phonemeList[phonemeCode] + ".csv";
+	return "C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv";
 	
 }
 

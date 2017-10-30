@@ -24,7 +24,7 @@ typedef struct {
 	float data[TABLE_SIZE][24];
 	int duration;
 }
-phonemeData;
+staticPhonemeData;
 
 PaStream *stream;
 int logCode =0;
@@ -61,7 +61,7 @@ std::string escapeStr(std::string str) {
 /*Read a phoneme CSV file
 TODO: Testing just for the phoneme OY
 */
-static void readOYCSVPhoneme(phonemeData* phoneme) {
+static void readOYCSVPhoneme(staticPhonemeData* phoneme) {
 
 	std::vector<std::string> vector;
 	std::string line;
@@ -147,7 +147,7 @@ static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
 	PaStreamCallbackFlags statusFlags,
 	void *userData) {
 
-	phonemeData *myData = (phonemeData*)userData;
+	Phoneme *myData = (Phoneme*)userData;
 	float *out = (float*)outputBuffer;
 	unsigned long i;
 
@@ -156,12 +156,15 @@ static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
 	(void)inputBuffer;
 
 	int k;
-	for (i = 0; i<framesPerBuffer; i++)
+	for (i = 0; i<framesPerBuffer && !data_streamed; i++)
 	{
 		for (k = 0; k < 24; k++)
-			*out++ = myData->data[phoneme_index_table][k];
+			*out++ = myData->valueAt(phoneme_index_table,k);
 		phoneme_index_table += 1;
-		if (phoneme_index_table >= TABLE_SIZE) phoneme_index_table -= TABLE_SIZE;
+		if (phoneme_index_table >= dynamic_table_size) {
+			data_streamed = true;
+			return paComplete;
+		}
 	}
 	return paContinue;
 }
@@ -171,7 +174,12 @@ static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
 */
 static void StreamFinished(void* userData)
 {
-	//TODO
+	playing = 0;
+	logCode = 0;
+	phoneme_index_table = 0;
+	dynamic_table_size = 0;
+	data_streamed = false;
+
 }
 
 void AsyncSimpleSinePlay(void*) {
@@ -276,12 +284,9 @@ void AsyncPlayPhoneme(void*) {
 	dynamic_table_size = 0;
 	data_streamed = false;
 
-	//phonemeData* data = (phonemeData*)malloc(sizeof(phonemeData));
-	//readOYCSVPhoneme(data);
-
 	Phoneme phoneme(38);
 	dynamic_table_size = phoneme.getNumberOfRows();
-
+	
 	//Error
 	PaError err;
 
@@ -322,7 +327,7 @@ void AsyncPlayPhoneme(void*) {
 		FRAMES_PER_BUFFER,
 		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
 		phonemePlayCallback,
-		data);
+		&phoneme);
 
 	if (err != paNoError) {
 		logCode = 3;
@@ -344,8 +349,9 @@ void AsyncPlayPhoneme(void*) {
 		return;
 	}
 
-	Pa_Sleep(data->duration);
-
+	while (!data_streamed);
+	//Pa_Sleep(phoneme.getPhonemeDuration());
+	
 	err = Pa_StopStream(stream);
 	if (err != paNoError) {
 		logCode = 6;
@@ -363,6 +369,9 @@ void AsyncPlayPhoneme(void*) {
 	Pa_Terminate();
 	logCode = 0;
 	playing = 0;
+	phoneme_index_table = 0;
+	dynamic_table_size = 0;
+	data_streamed = false;
 	_endthread();
 }
 
