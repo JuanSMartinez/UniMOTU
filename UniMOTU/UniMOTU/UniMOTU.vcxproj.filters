@@ -27,12 +27,18 @@
     <ClInclude Include="UniMOTU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Documents\VS Projects\MOTUTests\MOTUTests\Phoneme.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UniMOTU.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Documents\VS Projects\MOTUTests\MOTUTests\Phoneme.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
