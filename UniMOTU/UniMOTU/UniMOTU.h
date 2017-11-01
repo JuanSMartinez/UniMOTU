@@ -12,5 +12,9 @@ extern "C" __declspec(dllexport) int getLogCode();
 //Returns playing flag
 extern "C" __declspec(dllexport) int isPlaying();
 
+//Returns dll path
+extern "C" __declspec(dllexport) void setDllPathAsMessage();
 
+//Get the general message
+extern "C" __declspec(dllexport) char getMsg();
 

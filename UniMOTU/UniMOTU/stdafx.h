@@ -14,10 +14,10 @@
 #include <fstream>
 #include <math.h>
 #include <process.h>
-#include <string>
 #include <vector>
-#include <Windows.h>
 #include "Phoneme.h"
+#include <string>
+#include <Windows.h>
 
 
 

@@ -32,6 +32,7 @@ int playing = 0;
 int phoneme_index_table = 0;
 int dynamic_table_size = 0;
 bool data_streamed = false;
+const char* general_message;
 
 /*Search for the 24 channel motu output*/
 PaDeviceIndex findMOTU() {
@@ -349,8 +350,8 @@ void AsyncPlayPhoneme(void*) {
 		return;
 	}
 
-	while (!data_streamed);
-	//Pa_Sleep(phoneme.getPhonemeDuration());
+	//while (!data_streamed);
+	Pa_Sleep(phoneme.getPhonemeDuration());
 	
 	err = Pa_StopStream(stream);
 	if (err != paNoError) {
@@ -403,6 +404,33 @@ extern "C" __declspec(dllexport) int getLogCode() {
 /*Return the playing flag*/
 __declspec(dllexport) int isPlaying() {
 	return playing;
+}
+
+/*reset the general message buffer*/
+void resetMessageBuffer() {
+	general_message = "\0";
+}
+__declspec(dllexport) void setDllPathAsMessage() {
+
+	std::string basePath = "";
+	std::vector<wchar_t> pathBuf;
+	DWORD copied = 0;
+	do {
+		pathBuf.resize(pathBuf.size() + MAX_PATH);
+		copied = GetModuleFileName(0, &pathBuf.at(0), pathBuf.size());
+	} while (copied >= pathBuf.size());
+
+	pathBuf.resize(copied);
+	std::string path(pathBuf.begin(), pathBuf.end());
+	std::string::size_type pos = std::string(path).find_last_of("\\/");
+	basePath = std::string(path).substr(0, pos) + "\\";
+
+	resetMessageBuffer();
+	general_message = basePath.c_str();
+}
+
+__declspec(dllexport) char getMsg() {
+	return general_message++[0];
 }
 
 
