@@ -12,15 +12,13 @@
 #include "Phoneme.h"
 #include <Windows.h>
 
-static std::map<int, std::string>phonemeList = {{0,"P"},{1,"T"},{2,"K"},{3,"B"},{4,"D"},{5,"G"},{6,"CH"},{7,"J"},{8,"F"},{9,"V"},{10,"TH"},{11,"DH"},{12,"S"},{13,"Z"},{14,"SH"},{15,"ZH"},{16,"H"},{17,"M"},{18,"N"},{19,"NG"},{20,"L"},{21,"R"},{22,"W"},{23,"Y"},{24,"AE"},{25,"AH"},{26,"OE"},{27,"EH"},{28,"ER"},{29,"IH"},{30,"IY"},{31,"UH"},{32,"OO"},{33,"UU"},{34,"AW"},{35,"A"},{36,"I"},{37,"OW"},{38,"OY"}};
+static std::map<int, std::string>phonemeList = {{0,"P"},{1,"T"},{2,"K"},{3,"B"},{4,"D"},{5,"G"},{6,"CH"},{7,"J"},{8,"F"},{9,"V"},{10,"TH"},{11,"DH"},{12,"S"},{13,"Z"},{14,"SH"},{15,"ZH"},{16,"H"},{17,"M"},{18,"N"},{19,"NG"},{20,"L"},{21,"R"},{22,"W"},{23,"Y"},{24,"AE"},{25,"AH"},{26,"OE"},{27,"EH"},{28,"ER"},{29,"IH"},{30,"EE"},{31,"UH"},{32,"OO"},{33,"UU"},{34,"AW"},{35,"AY"},{36,"I"},{37,"OW"},{38,"OY"}};
 
 int Phoneme::getPhonemeCode(){
     return phonemeCode;
 }
 
 std::string Phoneme::getPathToDataFile(){
-    //TODO: Figure out how to get the path from the DLL
-
     std::string basePath = "";
 	std::vector<wchar_t> pathBuf;
 	DWORD copied = 0;
@@ -34,8 +32,6 @@ std::string Phoneme::getPathToDataFile(){
 	std::string::size_type pos = std::string(path).find_last_of("\\/");
 	basePath = std::string(path).substr(0, pos) + "\\Phonemes\\";
     return basePath + phonemeList[phonemeCode] + ".csv";
-	//return "C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv";
-	
 }
 
 void Phoneme::initializeData(){

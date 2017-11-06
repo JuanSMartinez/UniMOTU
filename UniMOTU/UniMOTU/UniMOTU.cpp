@@ -31,7 +31,7 @@ int logCode =0;
 int playing = 0;
 int phoneme_index_table = 0;
 int dynamic_table_size = 0;
-bool data_streamed = false;
+int phoneme_index = -1;
 const char* general_message;
 
 /*Search for the 24 channel motu output*/
@@ -157,13 +157,12 @@ static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
 	(void)inputBuffer;
 
 	int k;
-	for (i = 0; i<framesPerBuffer && !data_streamed; i++)
+	for (i = 0; i<framesPerBuffer; i++)
 	{
 		for (k = 0; k < 24; k++)
 			*out++ = myData->valueAt(phoneme_index_table,k);
 		phoneme_index_table += 1;
 		if (phoneme_index_table >= dynamic_table_size) {
-			data_streamed = true;
 			return paComplete;
 		}
 	}
@@ -179,7 +178,7 @@ static void StreamFinished(void* userData)
 	logCode = 0;
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
-	data_streamed = false;
+	phoneme_index = -1;
 
 }
 
@@ -283,9 +282,8 @@ void AsyncPlayPhoneme(void*) {
 	logCode = 0;
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
-	data_streamed = false;
 
-	Phoneme phoneme(38);
+	Phoneme phoneme(phoneme_index);
 	dynamic_table_size = phoneme.getNumberOfRows();
 	
 	//Error
@@ -350,9 +348,8 @@ void AsyncPlayPhoneme(void*) {
 		return;
 	}
 
-	//while (!data_streamed);
-	Pa_Sleep(phoneme.getPhonemeDuration());
-	
+	while (Pa_IsStreamActive(stream));
+
 	err = Pa_StopStream(stream);
 	if (err != paNoError) {
 		logCode = 6;
@@ -372,7 +369,7 @@ void AsyncPlayPhoneme(void*) {
 	playing = 0;
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
-	data_streamed = false;
+	phoneme_index = -1;
 	_endthread();
 }
 
@@ -380,6 +377,7 @@ void AsyncPlayPhoneme(void*) {
 __declspec(dllexport) int play(int phonemeCode) {
 	
 	if (playing == 0) {
+		phoneme_index = phonemeCode;
 		_beginthread(AsyncPlayPhoneme, 0, NULL);
 		return 0;
 	}
@@ -410,6 +408,7 @@ __declspec(dllexport) int isPlaying() {
 void resetMessageBuffer() {
 	general_message = "\0";
 }
+
 __declspec(dllexport) void setDllPathAsMessage() {
 
 	std::string basePath = "";
