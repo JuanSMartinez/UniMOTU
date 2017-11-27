@@ -198,7 +198,7 @@ void AsyncSimpleSinePlay(void*) {
 	simpleSineData sineData;
 	for (i = 0; i<SMALL_TABLE_SIZE; i++)
 	{
-		sineData.sineData[i] = (float)0.5*sin(((double)i / (double)SMALL_TABLE_SIZE) * M_PI * 2.);
+		sineData.sineData[i] = (float)0.1075*sin(((double)i / (double)SMALL_TABLE_SIZE) * M_PI * 2.);
 	}
 	sineData.duration = 2;
 
