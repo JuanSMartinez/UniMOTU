@@ -17,6 +17,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 typedef struct {
 	float sineData[SMALL_TABLE_SIZE];
 	int duration;
+	int j;
 }
 simpleSineData;
 
@@ -129,14 +130,13 @@ static int simpleSineTestCallback(const void *inputBuffer, void *outputBuffer,
 	(void)timeInfo; /* Prevent unused variable warnings. */
 	(void)statusFlags;
 	(void)inputBuffer;
-	int j = 0;
 	int k;
 	for (i = 0; i<framesPerBuffer; i++)
 	{
 		for(k = 0; k < 24; k++)
-			*out++ = myData->sineData[j];
-		j += 1;
-		if (j >= SMALL_TABLE_SIZE) j -= SMALL_TABLE_SIZE;
+			*out++ = myData->sineData[myData->j];
+		myData->j += 1;
+		if (myData->j >= SMALL_TABLE_SIZE) myData->j -= SMALL_TABLE_SIZE;
 	}
 	return paContinue;
 }
@@ -198,9 +198,10 @@ void AsyncSimpleSinePlay(void*) {
 	simpleSineData sineData;
 	for (i = 0; i<SMALL_TABLE_SIZE; i++)
 	{
-		sineData.sineData[i] = (float)0.1075*sin(((double)i / (double)SMALL_TABLE_SIZE) * M_PI * 2.);
+		sineData.sineData[i] = (float)(0.1075*sin(((double)i / (double)SMALL_TABLE_SIZE) * M_PI * 2.));
 	}
 	sineData.duration = 2;
+	sineData.j = 0;
 
 	//Initialize
 	err = Pa_Initialize();
