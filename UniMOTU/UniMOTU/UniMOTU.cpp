@@ -366,12 +366,105 @@ void AsyncPlayPhoneme(void*) {
 	}
 
 	Pa_Terminate();
+	phoneme.~Phoneme();
+	_endthread();
+}
+
+void SyncPlayPhoneme() {
+	playing = 1;
+	logCode = 0;
+	phoneme_index_table = 0;
+	dynamic_table_size = 0;
+
+	Phoneme phoneme(phoneme_index);
+	dynamic_table_size = phoneme.getNumberOfRows();
+
+	//Error
+	PaError err;
+
+	PaStreamParameters outputParameters;
+
+	//Device information
+	const PaDeviceInfo* info;
+
+
+	//Initialize
+	err = Pa_Initialize();
+	if (err != paNoError) {
+		logCode = 1;
+		Pa_Terminate();
+		return;
+	}
+
+	//Find MOTU
+	PaDeviceIndex device = findMOTU();
+	if (device == paNoDevice) {
+		logCode = 2;
+		Pa_Terminate();
+		return;
+	}
+	info = Pa_GetDeviceInfo(device);
+	outputParameters.device = device;
+	outputParameters.channelCount = 24;       /* stereo output */
+	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
+	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
+	outputParameters.hostApiSpecificStreamInfo = NULL;
+
+
+	err = Pa_OpenStream(
+		&stream,
+		NULL, /* no input */
+		&outputParameters,
+		SAMPLE_RATE,
+		FRAMES_PER_BUFFER,
+		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+		phonemePlayCallback,
+		&phoneme);
+
+	if (err != paNoError) {
+		logCode = 3;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_SetStreamFinishedCallback(stream, &StreamFinished);
+	if (err != paNoError) {
+		logCode = 4;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_StartStream(stream);
+	if (err != paNoError) {
+		logCode = 5;
+		Pa_Terminate();
+		return;
+	}
+
+	while (Pa_IsStreamActive(stream));
+
+	err = Pa_StopStream(stream);
+	if (err != paNoError) {
+		logCode = 6;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_CloseStream(stream);
+	if (err != paNoError) {
+		logCode = 7;
+		Pa_Terminate();
+		return;
+	}
+
+	Pa_Terminate();
 	logCode = 0;
 	playing = 0;
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
 	phoneme_index = -1;
-	_endthread();
+	phoneme.~Phoneme();
+	
 }
 
 /*Plays a phoneme*/
@@ -380,6 +473,16 @@ __declspec(dllexport) int play(int phonemeCode) {
 	if (playing == 0) {
 		phoneme_index = phonemeCode;
 		_beginthread(AsyncPlayPhoneme, 0, NULL);
+		return 0;
+	}
+	else return -1;
+}
+
+/*Plays a phoneme blocking the system*/
+__declspec(dllexport) int playSynchronous(int phonemeCode) {
+	if (playing == 0) {
+		phoneme_index = phonemeCode;
+		SyncPlayPhoneme();
 		return 0;
 	}
 	else return -1;
