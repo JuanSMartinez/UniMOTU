@@ -34,6 +34,7 @@ int phoneme_index_table = 0;
 int dynamic_table_size = 0;
 int phoneme_index = -1;
 const char* general_message;
+PaDeviceIndex motu_index;
 
 /*Search for the 24 channel motu output*/
 PaDeviceIndex findMOTU() {
@@ -41,7 +42,7 @@ PaDeviceIndex findMOTU() {
 	int numDevices = Pa_GetDeviceCount();
 	for (int i = 0; i < numDevices; i++) {
 		info = Pa_GetDeviceInfo(i);
-		if (info->maxOutputChannels == 24 && strstr(info->name, "MOTU"))
+		if (info->maxOutputChannels == 24 && info->maxInputChannels == 24)
 			return i;
 	}
 	return paNoDevice;
@@ -290,6 +291,7 @@ void AsyncPlayPhoneme(void*) {
 	//Error
 	PaError err;
 
+	//Output parameters
 	PaStreamParameters outputParameters;
 
 	//Device information
@@ -304,15 +306,15 @@ void AsyncPlayPhoneme(void*) {
 		return;
 	}
 
-	//Find MOTU
-	PaDeviceIndex device = findMOTU();
-	if (device == paNoDevice) {
+	//MOTU found?
+	motu_index = findMOTU();
+	if (motu_index == paNoDevice) {
 		logCode = 2;
 		Pa_Terminate();
 		return;
 	}
-	info = Pa_GetDeviceInfo(device);
-	outputParameters.device = device;
+	info = Pa_GetDeviceInfo(motu_index);
+	outputParameters.device = motu_index;
 	outputParameters.channelCount = 24;       /* stereo output */
 	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
 	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
@@ -366,7 +368,7 @@ void AsyncPlayPhoneme(void*) {
 	}
 
 	Pa_Terminate();
-	phoneme.~Phoneme();
+	//phoneme.~Phoneme();
 	_endthread();
 }
 
@@ -534,6 +536,12 @@ __declspec(dllexport) void setDllPathAsMessage() {
 
 __declspec(dllexport) char getMsg() {
 	return general_message++[0];
+}
+
+__declspec(dllexport) void getMotu() {
+	motu_index = findMOTU();
+	if (motu_index == paNoDevice) 
+		logCode = 2;
 }
 
 

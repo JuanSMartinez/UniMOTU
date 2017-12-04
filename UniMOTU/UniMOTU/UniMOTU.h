@@ -21,3 +21,6 @@ extern "C" __declspec(dllexport) void setDllPathAsMessage();
 //Get the general message
 extern "C" __declspec(dllexport) char getMsg();
 
+//Initialize motu
+extern "C" __declspec(dllexport) void getMotu();
+
