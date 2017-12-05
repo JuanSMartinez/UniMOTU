@@ -42,7 +42,7 @@ PaDeviceIndex findMOTU() {
 	int numDevices = Pa_GetDeviceCount();
 	for (int i = 0; i < numDevices; i++) {
 		info = Pa_GetDeviceInfo(i);
-		if (info->maxOutputChannels == 24 && info->maxInputChannels == 24)
+		if (info->maxOutputChannels == 24 && std::strcmp(Pa_GetHostApiInfo(info->hostApi)->name,"ASIO")==0)
 			return i;
 	}
 	return paNoDevice;
