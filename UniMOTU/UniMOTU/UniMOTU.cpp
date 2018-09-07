@@ -61,62 +61,6 @@ std::string escapeStr(std::string str) {
 	return str;
 }
 
-/*Read a phoneme CSV file
-TODO: Testing just for the phoneme OY
-*/
-static void readOYCSVPhoneme(staticPhonemeData* phoneme) {
-
-	std::vector<std::string> vector;
-	std::string line;
-	std::ifstream fileStream;
-	std::vector<wchar_t> pathBuf;
-	DWORD copied = 0;
-	do {
-		pathBuf.resize(pathBuf.size() + MAX_PATH);
-		copied = GetModuleFileName(0, &pathBuf.at(0), pathBuf.size());
-	} while (copied >= pathBuf.size());
-
-	pathBuf.resize(copied);
-	std::string path(pathBuf.begin(), pathBuf.end());
-	std::string::size_type pos = std::string(path).find_last_of("\\/");
-	std::string dir = (std::string(path).substr(0, pos));
-
-	WCHAR   DllPath[MAX_PATH] = { 0 };
-	GetModuleFileNameW((HINSTANCE)&__ImageBase, DllPath, _countof(DllPath));
-	std::wstring out = std::wstring(DllPath);
-	//fileStream.open(dir + "\\OY.csv");
-	fileStream.open( out + L"\\OY.csv");
-	//fileStream.open("C:\\Users\\Juan Sebastian\\Documents\\Unity Projects\\MOTUTests\\Assets\\Plugins\\OY.csv");
-	
-	while (fileStream.good()) {
-		std::getline(fileStream, line);
-		vector.push_back(line);
-	}
-	fileStream.close();
-
-	int j;
-	size_t rows = vector.size();
-
-	for (int i = 0; i < rows; i++) {
-		std::string row = vector[i];
-		size_t pos = row.find(",");
-		std::string value;
-		j = 0;
-		while (pos != std::string::npos) {
-			value = row.substr(0, pos);
-			row.erase(0, pos + 1);
-			phoneme->data[i][j] = atof(value.c_str());
-			j++;
-			pos = row.find(",");
-
-		}
-		phoneme->data[i][j] = atof(row.c_str());
-		j = 0;
-	}
-	phoneme->duration = 480;
-
-}
-
 /*PortAudio callback method for a simple sine test*/
 static int simpleSineTestCallback(const void *inputBuffer, void *outputBuffer,
 	unsigned long framesPerBuffer,
