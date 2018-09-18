@@ -36,6 +36,12 @@ int phoneme_index = -1;
 const char* general_message;
 PaDeviceIndex motu_index;
 
+//Arbitrary matrix data
+float* arbitraryMatrix;
+int arbitraryMatrixWidth;
+int arbitraryMatrixHeight;
+int matrix_index_table = 0;
+
 /*Search for the 24 channel motu output*/
 PaDeviceIndex findMOTU() {
 	const PaDeviceInfo* info;
@@ -108,6 +114,34 @@ static int phonemePlayCallback(const void *inputBuffer, void *outputBuffer,
 			*out++ = myData->valueAt(phoneme_index_table,k);
 		phoneme_index_table += 1;
 		if (phoneme_index_table >= dynamic_table_size) {
+			return paComplete;
+		}
+	}
+	return paContinue;
+}
+
+/*PortAudio callback method for an arbitrary matrix*/
+static int matrixPlayCallback(const void *inputBuffer, void *outputBuffer,
+	unsigned long framesPerBuffer,
+	const PaStreamCallbackTimeInfo* timeInfo,
+	PaStreamCallbackFlags statusFlags,
+	void *userData) {
+
+	float *myData = (float*)userData;
+	float *out = (float*)outputBuffer;
+	unsigned long i;
+
+	(void)timeInfo; /* Prevent unused variable warnings. */
+	(void)statusFlags;
+	(void)inputBuffer;
+
+	int k;
+	for (i = 0; i<framesPerBuffer; i++)
+	{
+		for (k = 0; k < arbitraryMatrixWidth; k++)
+			*out++ = *myData*matrix_index_table + k;
+		matrix_index_table += 1;
+		if (matrix_index_table >= dynamic_table_size) {
 			return paComplete;
 		}
 	}
@@ -312,7 +346,95 @@ void AsyncPlayPhoneme(void*) {
 	}
 
 	Pa_Terminate();
-	//phoneme.~Phoneme();
+	_endthread();
+}
+
+void AsyncPlayMatrix(void*) {
+	playing = 1;
+	logCode = 0;
+	matrix_index_table = 0;
+	dynamic_table_size =arbitraryMatrixHeight;
+
+	//Error
+	PaError err;
+
+	//Output parameters
+	PaStreamParameters outputParameters;
+
+	//Device information
+	const PaDeviceInfo* info;
+
+
+	//Initialize
+	err = Pa_Initialize();
+	if (err != paNoError) {
+		logCode = 1;
+		Pa_Terminate();
+		return;
+	}
+
+	//MOTU found?
+	motu_index = findMOTU();
+	if (motu_index == paNoDevice) {
+		logCode = 2;
+		Pa_Terminate();
+		return;
+	}
+	info = Pa_GetDeviceInfo(motu_index);
+	outputParameters.device = motu_index;
+	outputParameters.channelCount = 24;       /* stereo output */
+	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
+	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
+	outputParameters.hostApiSpecificStreamInfo = NULL;
+
+
+	err = Pa_OpenStream(
+		&stream,
+		NULL, /* no input */
+		&outputParameters,
+		SAMPLE_RATE,
+		FRAMES_PER_BUFFER,
+		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+		matrixPlayCallback,
+		&arbitraryMatrix);
+
+	if (err != paNoError) {
+		logCode = 3;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_SetStreamFinishedCallback(stream, &StreamFinished);
+	if (err != paNoError) {
+		logCode = 4;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_StartStream(stream);
+	if (err != paNoError) {
+		logCode = 5;
+		Pa_Terminate();
+		return;
+	}
+
+	while (Pa_IsStreamActive(stream));
+
+	err = Pa_StopStream(stream);
+	if (err != paNoError) {
+		logCode = 6;
+		Pa_Terminate();
+		return;
+	}
+
+	err = Pa_CloseStream(stream);
+	if (err != paNoError) {
+		logCode = 7;
+		Pa_Terminate();
+		return;
+	}
+
+	Pa_Terminate();
 	_endthread();
 }
 
@@ -486,6 +608,18 @@ __declspec(dllexport) void getMotu() {
 	motu_index = findMOTU();
 	if (motu_index == paNoDevice) 
 		logCode = 2;
+}
+
+/*Play a matrix*/
+_declspec(dllexport) int playMatrix(float matrix[], int width, int height) {
+	if (playing == 0) {
+		arbitraryMatrix = matrix;
+		arbitraryMatrixWidth = width;
+		arbitraryMatrixHeight = height;
+		_beginthread(AsyncPlayMatrix, 0, NULL);
+		return 0;
+	}
+	else return -1;
 }
 
 

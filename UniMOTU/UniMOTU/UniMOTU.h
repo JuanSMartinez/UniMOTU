@@ -24,3 +24,6 @@ extern "C" __declspec(dllexport) char getMsg();
 //Initialize motu
 extern "C" __declspec(dllexport) void getMotu();
 
+//Play a specific matrix 
+extern "C" _declspec(dllexport) int playMatrix(float matrix[], int width, int height);
+
