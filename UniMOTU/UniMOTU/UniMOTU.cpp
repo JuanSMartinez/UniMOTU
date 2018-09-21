@@ -21,12 +21,6 @@ typedef struct {
 }
 simpleSineData;
 
-typedef struct {
-	float data[TABLE_SIZE][24];
-	int duration;
-}
-staticPhonemeData;
-
 PaStream *stream;
 int logCode =0;
 int playing = 0;
@@ -138,12 +132,14 @@ static int matrixPlayCallback(const void *inputBuffer, void *outputBuffer,
 	int k;
 	for (i = 0; i<framesPerBuffer; i++)
 	{
+
 		for (k = 0; k < arbitraryMatrixWidth; k++)
-			*out++ = *myData*matrix_index_table + k;
+			out[k] = myData[matrix_index_table*arbitraryMatrixWidth + k];
 		matrix_index_table += 1;
-		if (matrix_index_table >= dynamic_table_size) {
+		if (matrix_index_table >= arbitraryMatrixHeight) {
 			return paComplete;
 		}
+		
 	}
 	return paContinue;
 }
@@ -158,7 +154,7 @@ static void StreamFinished(void* userData)
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
 	phoneme_index = -1;
-
+	free((void *)arbitraryMatrix);
 }
 
 void AsyncSimpleSinePlay(void*) {
@@ -353,7 +349,6 @@ void AsyncPlayMatrix(void*) {
 	playing = 1;
 	logCode = 0;
 	matrix_index_table = 0;
-	dynamic_table_size =arbitraryMatrixHeight;
 
 	//Error
 	PaError err;
@@ -396,7 +391,7 @@ void AsyncPlayMatrix(void*) {
 		FRAMES_PER_BUFFER,
 		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
 		matrixPlayCallback,
-		&arbitraryMatrix);
+		arbitraryMatrix);
 
 	if (err != paNoError) {
 		logCode = 3;
@@ -613,6 +608,7 @@ __declspec(dllexport) void getMotu() {
 /*Play a matrix*/
 _declspec(dllexport) int playMatrix(float matrix[], int width, int height) {
 	if (playing == 0) {
+		arbitraryMatrix = (float*)calloc(width*height, sizeof(float));
 		arbitraryMatrix = matrix;
 		arbitraryMatrixWidth = width;
 		arbitraryMatrixHeight = height;
