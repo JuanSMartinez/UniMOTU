@@ -154,7 +154,7 @@ static void StreamFinished(void* userData)
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
 	phoneme_index = -1;
-	free((void *)arbitraryMatrix);
+	
 }
 
 void AsyncSimpleSinePlay(void*) {
@@ -430,6 +430,7 @@ void AsyncPlayMatrix(void*) {
 	}
 
 	Pa_Terminate();
+	free((void *)arbitraryMatrix);
 	_endthread();
 }
 
@@ -606,12 +607,40 @@ __declspec(dllexport) void getMotu() {
 }
 
 /*Play a matrix*/
-_declspec(dllexport) int playMatrix(float matrix[], int width, int height) {
+_declspec(dllexport) int playMatrix(float* matrix, int width, int height, int* outValue) {
 	if (playing == 0) {
-		arbitraryMatrix = (float*)calloc(width*height, sizeof(float));
-		arbitraryMatrix = matrix;
+		arbitraryMatrix = new float[width*height];
+		for (int i = 0; i < width*height; i++)
+		{
+			arbitraryMatrix[i] = matrix[i];
+		}
+		*outValue = 1;
 		arbitraryMatrixWidth = width;
 		arbitraryMatrixHeight = height;
+
+
+
+		//int fs = 44100;
+		//int durationMillis = 3000;
+		//int channels = 3;
+
+		////sine waves parameters
+		//float amplitudes[] = { 0.5, 0.3, 0.1 };
+		//float frequencies[] = { 100.0, 200.0, 300.0 };
+
+		////The number of rows in the matrix reflects the time duration
+		//int matrixHeight = (int)(fs*(durationMillis / 1000));
+		//arbitraryMatrix = new float[channels*matrixHeight];
+		//float* time = new float[matrixHeight];
+
+		//for (int t = 0; t < matrixHeight; t++)
+		//	time[t] = (1.0*t) / fs;
+
+		//for (int i = 0; i < matrixHeight; i++)
+		//	for (int j = 0; j < channels; j++) {
+		//		arbitraryMatrix[i*channels + j] = amplitudes[j] * sin(2 * M_PI * frequencies[j] * time[i]);
+		//	}
+
 		_beginthread(AsyncPlayMatrix, 0, NULL);
 		return 0;
 	}
