@@ -134,7 +134,7 @@ static int matrixPlayCallback(const void *inputBuffer, void *outputBuffer,
 	{
 
 		for (k = 0; k < arbitraryMatrixWidth; k++)
-			out[k] = myData[matrix_index_table*arbitraryMatrixWidth + k];
+			*out++ = myData[matrix_index_table*arbitraryMatrixWidth + k];
 		matrix_index_table += 1;
 		if (matrix_index_table >= arbitraryMatrixHeight) {
 			return paComplete;
@@ -154,7 +154,7 @@ static void StreamFinished(void* userData)
 	phoneme_index_table = 0;
 	dynamic_table_size = 0;
 	phoneme_index = -1;
-	
+	matrix_index_table = 0;
 }
 
 void AsyncSimpleSinePlay(void*) {
@@ -289,7 +289,7 @@ void AsyncPlayPhoneme(void*) {
 	}
 	info = Pa_GetDeviceInfo(motu_index);
 	outputParameters.device = motu_index;
-	outputParameters.channelCount = 24;       /* stereo output */
+	outputParameters.channelCount = 24;       
 	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
 	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
 	outputParameters.hostApiSpecificStreamInfo = NULL;
@@ -377,7 +377,7 @@ void AsyncPlayMatrix(void*) {
 	}
 	info = Pa_GetDeviceInfo(motu_index);
 	outputParameters.device = motu_index;
-	outputParameters.channelCount = 24;       /* stereo output */
+	outputParameters.channelCount = arbitraryMatrixWidth; 
 	outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
 	outputParameters.suggestedLatency = info->defaultLowOutputLatency;
 	outputParameters.hostApiSpecificStreamInfo = NULL;
@@ -430,7 +430,6 @@ void AsyncPlayMatrix(void*) {
 	}
 
 	Pa_Terminate();
-	free((void *)arbitraryMatrix);
 	_endthread();
 }
 
@@ -607,40 +606,12 @@ __declspec(dllexport) void getMotu() {
 }
 
 /*Play a matrix*/
-_declspec(dllexport) int playMatrix(float* matrix, int width, int height, int* outValue) {
+_declspec(dllexport) int playMatrix(float* matrix, int width, int height) {
 	if (playing == 0) {
-		arbitraryMatrix = new float[width*height];
-		for (int i = 0; i < width*height; i++)
-		{
-			arbitraryMatrix[i] = matrix[i];
-		}
-		*outValue = 1;
+		//NOTE: the pointer to the matrix has to be allocated and garbage collected in an upper level
+		arbitraryMatrix = matrix;
 		arbitraryMatrixWidth = width;
 		arbitraryMatrixHeight = height;
-
-
-
-		//int fs = 44100;
-		//int durationMillis = 3000;
-		//int channels = 3;
-
-		////sine waves parameters
-		//float amplitudes[] = { 0.5, 0.3, 0.1 };
-		//float frequencies[] = { 100.0, 200.0, 300.0 };
-
-		////The number of rows in the matrix reflects the time duration
-		//int matrixHeight = (int)(fs*(durationMillis / 1000));
-		//arbitraryMatrix = new float[channels*matrixHeight];
-		//float* time = new float[matrixHeight];
-
-		//for (int t = 0; t < matrixHeight; t++)
-		//	time[t] = (1.0*t) / fs;
-
-		//for (int i = 0; i < matrixHeight; i++)
-		//	for (int j = 0; j < channels; j++) {
-		//		arbitraryMatrix[i*channels + j] = amplitudes[j] * sin(2 * M_PI * frequencies[j] * time[i]);
-		//	}
-
 		_beginthread(AsyncPlayMatrix, 0, NULL);
 		return 0;
 	}
